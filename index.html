@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Personal webpage of Manolo Perez">
+    <title>Manolo Perez - Personal Webpage</title>
+    <style>
+        /* Global styles */
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #101820;
+            color: #F0F0F5;
+            overflow-x: hidden;
+        }
+
+        header {
+            background-color: #0D7377;
+            color: #fff;
+            text-align: center;
+            padding: 2rem 1rem;
+            position: relative;
+            animation: fadeIn 2s ease;
+        }
+
+        nav {
+            background-color: #1F1F1F;
+            overflow: hidden;
+            text-align: center;
+            animation: fadeIn 2.5s ease;
+        }
+
+        nav a {
+            display: inline-block;
+            color: white;
+            text-align: center;
+            padding: 14px 20px;
+            text-decoration: none;
+            font-size: 1.1rem;
+            transition: 0.3s;
+        }
+
+        nav a:hover {
+            background-color: #0D7377;
+            color: #fff;
+            transform: scale(1.1);
+        }
+
+        section {
+            padding: 60px 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+            animation: fadeInUp 1.5s ease;
+        }
+
+        footer {
+            background-color: #0D7377;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            position: fixed;
+            width: 100%;
+            bottom: 0;
+            animation: fadeInUp 3s ease;
+        }
+
+        h1, h2 {
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .content-container {
+            margin: 0 auto;
+            max-width: 900px;
+            animation: fadeInUp 2s ease;
+        }
+
+        .section-title {
+            border-bottom: 2px solid #0D7377;
+            padding-bottom: 10px;
+            font-size: 1.8rem;
+        }
+
+        .section-content {
+            margin-bottom: 50px;
+            font-size: 1.2rem;
+        }
+
+        .ai-binary-bg {
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/4/4d/Binary_code.jpg');
+            background-size: cover;
+            background-blend-mode: overlay;
+            padding: 50px 20px;
+            color: white;
+            border-radius: 10px;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        @keyframes fadeInUp {
+            0% { opacity: 0; transform: translateY(30px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+
+        /* AI-Themed elements */
+        .ai-theme {
+            border-left: 5px solid #32E0C4;
+            padding-left: 10px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            nav a {
+                display: block;
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Manolo Perez</h1>
+    <p>Researcher, Educator, and Developer in Artificial Intelligence</p>
+</header>
+
+<nav>
+    <a href="#about">About Me</a>
+    <a href="#research">Research</a>
+    <a href="#publications">Publications</a>
+    <a href="#projects">Projects</a>
+    <a href="#teaching">Teaching</a>
+    <a href="#contact">Contact</a>
+</nav>
+
+<div class="content-container">
+    <section id="about" class="ai-theme">
+        <h2 class="section-title">About Me</h2>
+        <div class="section-content">
+            <p>Hello, I’m Manolo Perez, a passionate researcher and educator with expertise in Artificial Intelligence (AI). My work focuses on leveraging AI to solve real-world challenges, from machine learning to natural language processing, with a commitment to advancing technology for the betterment of society.</p>
+        </div>
+    </section>
+
+    <section id="research" class="ai-binary-bg">
+        <h2 class="section-title">Research</h2>
+        <div class="section-content">
+            <p>My research is centered on the intersection of machine learning and human-computer interaction. I am currently exploring how AI can improve decision-making processes in complex systems and contribute to more intuitive human-machine collaborations.</p>
+        </div>
+    </section>
+
+    <section id="publications" class="ai-theme">
+        <h2 class="section-title">Publications</h2>
+        <div class="section-content">
+            <ul>
+                <li><strong>Title of Publication 1</strong> - Journal of AI Research, 2023</li>
+                <li><strong>Title of Publication 2</strong> - International Conference on Machine Learning, 2022</li>
+                <li><strong>Title of Publication 3</strong> - Advances in Neural Information Processing Systems, 2021</li>
+            </ul>
+        </div>
+    </section>
+
+    <section id="projects">
+        <h2 class="section-title">Projects</h2>
+        <div class="section-content">
+            <p>Some of my recent projects include building a scalable AI model for climate prediction, creating intelligent systems for healthcare diagnostics, and contributing to open-source AI frameworks.</p>
+        </div>
+    </section>
+
+    <section id="teaching" class="ai-binary-bg">
+        <h2 class="section-title">Teaching</h2>
+        <div class="section-content">
+            <p>I teach courses on artificial intelligence and data science at various institutions. My approach to teaching emphasizes practical applications of AI in real-world scenarios and nurturing the next generation of AI leaders.</p>
+        </div>
+    </section>
+
+    <section id="contact" class="ai-theme">
+        <h2 class="section-title">Contact</h2>
+        <div class="section-content">
+            <p>Feel free to reach out to me at: <strong>manolo.perez@example.com</strong></p>
+            <p>LinkedIn: <a href="#">linkedin.com/in/manoloperez</a></p>
+        </div>
+    </section>
+</div>
+
+<footer>
+    <p>&copy; 2024 Manolo Perez | Powered by AI and Innovation</p>
+</footer>
+
+</body>
+</html>
