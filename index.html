@@ -268,6 +268,21 @@ section{position:relative;padding-block:5.5rem 1rem;border-top:1px solid var(--r
 .join h3{font-size:1.5rem;margin-bottom:.7rem;font-variation-settings:"SOFT" 60,"opsz" 48}
 .join p{color:var(--ink-2);font-size:1rem}
 
+/* ---------- finding us ---------- */
+.findus{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:2.5rem 3rem;align-items:start;margin-top:3.5rem;padding-top:3rem;border-top:1px dashed var(--rule)}
+@media (max-width:960px){.findus{grid-template-columns:1fr}}
+.gate{margin:0;position:relative;transform:rotate(-.7deg);max-width:26rem}
+#contact .sec-head{align-items:start}
+.contact-intro{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1.5rem 2.5rem;align-items:start}
+@media (max-width:700px){.contact-intro{grid-template-columns:1fr}}
+.map-note{color:var(--ink-2);font-size:.98rem;max-width:26rem;margin-bottom:1.3rem}
+.gate img{display:block;width:100%;height:auto;border:1px solid var(--rule);background:var(--paper-2);padding:.5rem;box-shadow:var(--shadow);filter:saturate(.9)}
+.gate::before{content:"";position:absolute;right:2rem;top:-.55rem;width:4.4rem;height:1rem;background:var(--tape);transform:rotate(4deg);z-index:2}
+.gate figcaption{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.1em;color:var(--ink-2);margin-top:.7rem;text-transform:uppercase}
+.map p{margin:.5rem 0 1.1rem;line-height:1.5}
+.mapframe{aspect-ratio:16/10;max-width:100%;border:1px solid var(--rule);background:var(--paper-2);padding:.4rem;box-shadow:var(--shadow);transform:rotate(.6deg);margin-bottom:1.2rem}
+.mapframe iframe{display:block;width:100%;height:100%;border:0;filter:grayscale(.35) contrast(1.02)}
+
 footer{padding-top:3rem;margin-top:5rem;border-top:1px solid var(--rule);display:flex;flex-wrap:wrap;justify-content:space-between;gap:.8rem 2rem;font-family:var(--f-mono);font-size:.68rem;letter-spacing:.08em;color:var(--ink-2)}
 
 /* reveal */
@@ -523,7 +538,13 @@ footer{padding-top:3rem;margin-top:5rem;border-top:1px solid var(--rule);display
 <section id="contact" class="rv">
   <div class="sec-head">
     <h2>Contact</h2>
-    <p class="lede">The lab is in the Real Jardín Botánico, next to the Prado, in central Madrid.</p>
+    <div class="contact-intro">
+      <p class="lede">The lab is in the Real Jardín Botánico, next to the Prado, in central Madrid.</p>
+    <figure class="gate">
+      <img src="images/rjb-gate.jpg" alt="The Puerta Real of the Real Jardín Botánico, a neoclassical gate on the Paseo del Prado" loading="lazy" width="1400" height="933">
+      <figcaption>Puerta Real, Paseo del Prado · photo Antonello Dellanotte © RJB-CSIC</figcaption>
+    </figure>
+    </div>
   </div>
   <div class="contact">
     <div>
@@ -542,6 +563,19 @@ footer{padding-top:3rem;margin-top:5rem;border-top:1px solid var(--rule);display
     <div class="join">
       <h3>Join the lab</h3>
       <p>We welcome students and postdocs who want to work between evolutionary biology and machine learning, whatever side they are coming from. If you have a question about speciation, phylogeography or diversification and suspect a simulator plus a neural network could answer it, write to us with a short note on what you would like to do.</p>
+    </div>
+  </div>
+  <div class="findus">
+    <div class="map">
+      <div class="eyebrow">Finding us</div>
+      <p>Real Jardín Botánico, CSIC<br>Plaza de Murillo 2, 28014 Madrid<br><span class="mono">40.4113° N · 3.6911° W</span></p>
+      <p class="map-note">Metro Atocha or Banco de España; the public entrance is the Puerta de Murillo, opposite the Prado.</p>
+      <a class="btn ghost" href="https://www.google.com/maps/search/?api=1&query=Real+Jard%C3%ADn+Bot%C3%A1nico+CSIC+Plaza+de+Murillo+2+Madrid" target="_blank" rel="noopener">Open in Google Maps ↗</a>
+    </div>
+    <div>
+      <div class="mapframe">
+        <iframe title="Map: Real Jardín Botánico, Madrid" src="https://www.google.com/maps?q=Real+Jard%C3%ADn+Bot%C3%A1nico%2C+Plaza+de+Murillo+2%2C+28014+Madrid&z=16&output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+      </div>
     </div>
   </div>
 </section>
