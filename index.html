@@ -211,7 +211,7 @@ section{position:relative;padding-block:5.5rem 1rem;border-top:1px solid var(--r
 @media (prefers-reduced-motion:reduce){.term .cursor{animation:none}}
 
 /* ---------- publications ---------- */
-.pubtop{display:flex;flex-wrap:wrap;gap:1rem 2rem;align-items:end;justify-content:space-between;margin-bottom:1.6rem}
+.pubtop{display:flex;flex-wrap:wrap;gap:1rem 2rem;align-items:end;justify-content:flex-start;margin-bottom:1.6rem}
 .count{font-family:var(--f-display);font-size:clamp(2.6rem,5vw,4rem);line-height:1;letter-spacing:-.03em;font-variation-settings:"SOFT" 80,"opsz" 144,"wght" 300;font-variant-numeric:tabular-nums}
 .count small{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);display:block;margin-top:.3rem}
 .filters{display:flex;flex-wrap:wrap;gap:.4rem}
@@ -498,7 +498,6 @@ footer{padding-top:3rem;margin-top:5rem;border-top:1px solid var(--rule);display
     <p class="lede">Peer-reviewed articles, preprints and book chapters. The full record lives on <a href="https://scholar.google.com/citations?user=b0vBInIAAAAJ&hl=en" target="_blank" rel="noopener">Google Scholar</a> and <a href="https://orcid.org/0000-0002-4642-7793" target="_blank" rel="noopener">ORCID</a>.</p>
   </div>
   <div class="pubtop">
-    <div class="count"><span id="pubcount">37</span><small id="pubcountlabel">works · 2011 – 2025</small></div>
     <div class="filters" role="group" aria-label="Filter publications">
       <button class="chip" aria-pressed="true" data-f="all" id="f-all">All</button>
       <button class="chip" aria-pressed="false" data-f="lead" id="f-lead">Lead author</button>
@@ -758,7 +757,6 @@ document.getElementById('showall').addEventListener('click',e=>{
   e.target.textContent=open?'Show all works':'Show fewer';
   document.getElementById('shown').textContent=open?`showing ${Math.min(SHOW,list.children.length)} of ${list.children.length}`:`${list.children.length} works`;
 });
-document.getElementById('pubcount').textContent=PUBS.length;
 render('all');
 
 /* ---------- copy email ---------- */
