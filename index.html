@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Perez Lab</title>
+<meta name="description" content="Perez Lab at the Real Jardín Botánico (RJB–CSIC), Madrid. Deep learning, Bayesian inference and population genomics for phylogenetics, phylogeography and biodiversity.">
+<link rel="icon" href="favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..700,0..100;1,9..144,300..700,0..100&family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&display=swap">
+<style>
+/* ---------------------------------------------------------------
+   Layout concept: a herbarium sheet. A narrow mounted "label" rail on
+   the left carries navigation and a running Newick string; the main
+   column sits off-centre like a pressed specimen, with marginalia that
+   spill into the gutter. A growing birth–death tree is the hero image.
+   --------------------------------------------------------------- */
+:root{
+  --paper:#ECEEE5;        /* cool sage-bone, not cream */
+  --paper-2:#E1E4D7;      /* slightly deeper sheet */
+  --ink:#141B16;          /* botanical ink */
+  --ink-2:#4A554D;        /* annotation */
+  --rule:#B7BDAE;         /* pencil rule */
+  --accent:#B0284B;       /* Pilosocereus fruit carmine */
+  --moss:#4E6C4C;         /* leaf */
+  --ochre:#B98A2A;        /* "det." stamp */
+  --tape:rgba(214,196,120,.55);
+  --shadow:0 18px 40px -24px rgba(20,27,22,.45);
+
+  --f-display:"Fraunces",Georgia,"Times New Roman",serif;
+  --f-body:"Newsreader",Georgia,"Times New Roman",serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+
+  --rail:13.5rem;
+  --gutter:clamp(16px,4vw,48px);
+  --measure:62ch;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#121812; --paper-2:#1A221B; --ink:#E7EADF; --ink-2:#A9B2A5;
+    --rule:#36432F; --accent:#E25B7E; --moss:#8FB58B; --ochre:#D6A64A;
+    --tape:rgba(214,196,120,.28); --shadow:0 18px 40px -24px rgba(0,0,0,.8);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#121812; --paper-2:#1A221B; --ink:#E7EADF; --ink-2:#A9B2A5;
+  --rule:#36432F; --accent:#E25B7E; --moss:#8FB58B; --ochre:#D6A64A;
+  --tape:rgba(214,196,120,.28); --shadow:0 18px 40px -24px rgba(0,0,0,.8);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:var(--f-body);font-size:1.125rem;line-height:1.55;
+  font-optical-sizing:auto;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+/* paper grain */
+body::before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.35;
+  background-image:
+    radial-gradient(rgba(20,27,22,.08) .6px,transparent .7px),
+    radial-gradient(rgba(20,27,22,.05) .5px,transparent .6px);
+  background-size:7px 7px,11px 11px;background-position:0 0,3px 5px;
+}
+a{color:inherit;text-decoration-color:var(--rule);text-underline-offset:.18em;text-decoration-thickness:1px}
+a:hover{text-decoration-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+img{max-width:100%}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;line-height:1.02;text-wrap:balance;margin:0}
+p{margin:0}
+.mono{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.04em}
+.eyebrow{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+em.sp{font-style:italic}
+
+/* ---------- frame ---------- */
+.sheet{position:relative;z-index:1;display:grid;grid-template-columns:var(--rail) 1fr;min-height:100vh}
+@media (max-width:860px){.sheet{grid-template-columns:1fr}}
+
+/* ---------- rail ---------- */
+.rail{
+  position:sticky;top:env(safe-area-inset-top,0px);height:100vh;
+  border-right:1px solid var(--rule);
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:1.6rem 1.2rem 1.4rem;overflow:hidden;
+}
+.rail .brand{font-family:var(--f-display);font-size:1.3rem;letter-spacing:-.01em}
+.rail .brand small{display:block;font-family:var(--f-mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);margin-top:.35rem}
+.rail nav{display:flex;flex-direction:column;gap:.55rem;margin-top:2.6rem}
+.rail nav a{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.06em;text-decoration:none;color:var(--ink-2);display:flex;gap:.6rem;align-items:baseline;transition:color .2s}
+.rail nav a::before{content:"";width:.9rem;height:1px;background:var(--rule);transform:translateY(-.3em);transition:width .25s,background .2s}
+.rail nav a:hover,.rail nav a[aria-current="true"]{color:var(--ink)}
+.rail nav a:hover::before,.rail nav a[aria-current="true"]::before{width:1.6rem;background:var(--accent)}
+.newick{
+  position:absolute;right:.9rem;bottom:8.5rem;transform-origin:right bottom;transform:rotate(-90deg) translateX(0);
+  white-space:nowrap;font-family:var(--f-mono);font-size:.62rem;letter-spacing:.08em;color:var(--ink-2);opacity:.7;width:60vh;overflow:hidden;
+}
+.newick span{display:inline-block;animation:crawl 38s linear infinite}
+@keyframes crawl{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.newick span{animation:none}}
+.rail .foot{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.08em;color:var(--ink-2);line-height:1.6}
+@media (max-width:860px){
+  .rail{position:static;height:auto;border-right:0;border-bottom:1px solid var(--rule);padding:1.1rem var(--gutter) .9rem}
+  .rail nav{flex-direction:row;flex-wrap:wrap;gap:.4rem 1.1rem;margin-top:.9rem}
+  .rail nav a::before{display:none}
+  .newick,.rail .foot{display:none}
+}
+
+/* ---------- main ---------- */
+main{min-width:0;padding-inline:var(--gutter);padding-block:0 6rem}
+section{position:relative;padding-block:5.5rem 1rem;border-top:1px solid var(--rule)}
+#view-home>section:first-of-type{border-top:0;padding-top:0}
+.sec-head{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:1.5rem 3rem;align-items:end;margin-bottom:2.8rem}
+.sec-head h2{font-size:clamp(2rem,4.2vw,3.4rem);font-variation-settings:"SOFT" 40,"opsz" 96;letter-spacing:-.015em}
+.sec-head .lede{max-width:var(--measure);color:var(--ink-2);font-size:1.05rem}
+@media (max-width:860px){.sec-head{grid-template-columns:1fr;gap:.9rem}}
+
+/* ---------- hero ---------- */
+.hero{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:1.6rem 3rem;align-items:start;padding-top:1.6rem;min-height:70vh}
+.hero .topbar{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:.8rem 1.5rem;padding-bottom:1rem;border-bottom:1px solid var(--rule)}
+.hero .topbar .social{margin-top:0}
+@media (max-width:1100px){.hero{grid-template-columns:1fr}}
+.hero h1{
+  font-size:clamp(3rem,8.4vw,7.8rem);letter-spacing:-.03em;line-height:.92;
+  font-variation-settings:"SOFT" 60,"opsz" 144,"wght" 380;
+  margin-top:1.2rem;
+}
+.hero h1 .l2{display:block;padding-left:.6em;font-style:italic;font-weight:300;font-variation-settings:"SOFT" 100,"opsz" 144,"wght" 300}
+.hero h1 .l3{display:block;padding-left:.25em}
+.hero .kicker{display:flex;gap:1.2rem;flex-wrap:wrap;align-items:center;margin-top:.4rem}
+.hero .kicker .dot{width:.5rem;height:.5rem;border-radius:50%;background:var(--accent);display:inline-block}
+.hero .thesis{max-width:var(--measure);font-size:clamp(1.15rem,1.6vw,1.4rem);line-height:1.45;margin-top:2rem;font-family:var(--f-display);font-weight:300;font-variation-settings:"SOFT" 30,"opsz" 24}
+.hero .thesis strong{font-weight:500;color:var(--accent)}
+.hero .cta{display:flex;gap:1.4rem;flex-wrap:wrap;margin-top:2rem;align-items:center}
+.btn{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;border:1px solid var(--ink);padding:.7rem 1.1rem;border-radius:999px;display:inline-flex;gap:.6rem;align-items:center;transition:background .2s,color .2s}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.btn.ghost{border-color:var(--rule);color:var(--ink-2)}
+.btn.ghost:hover{background:transparent;color:var(--ink);border-color:var(--ink)}
+
+.specimen{position:relative;margin-top:1.2rem}
+.photo{margin:0;position:relative;transform:rotate(.8deg)}
+.photo img{display:block;width:100%;height:auto;aspect-ratio:4/5;object-fit:cover;object-position:50% 45%;max-width:100%;border:1px solid var(--rule);background:var(--paper-2);padding:.5rem;box-shadow:var(--shadow);filter:saturate(.85) contrast(1.02)}
+.photo.missing img{display:none}
+.photo .ph{display:none;aspect-ratio:4/5;border:1px dashed var(--rule);background:var(--paper-2);padding:1rem;place-content:start;font-family:var(--f-mono);font-size:.72rem;letter-spacing:.08em;color:var(--ink-2)}
+.photo .ph small{display:block;margin-top:.3rem;font-size:.64rem;text-transform:uppercase;letter-spacing:.12em}
+.photo.missing .ph{display:grid}
+.photo::before{content:"";position:absolute;left:1.4rem;top:-.55rem;width:4.4rem;height:1rem;background:var(--tape);transform:rotate(-5deg);z-index:2}
+.photo figcaption{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.1em;color:var(--ink-2);margin-top:.7rem;text-transform:uppercase}
+.label{
+  position:absolute;right:-.4rem;bottom:3.2rem;width:min(18rem,80%);
+  background:var(--paper-2);border:1px solid var(--rule);padding:1rem 1.1rem 1.05rem;
+  transform:rotate(-1.6deg);box-shadow:var(--shadow);
+  font-family:var(--f-mono);font-size:.72rem;line-height:1.7;letter-spacing:.03em;
+}
+.label::before{content:"";position:absolute;left:30%;top:-.55rem;width:4.4rem;height:1rem;background:var(--tape);transform:rotate(-4deg)}
+.label dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:0 .8rem}
+.label dt{color:var(--ink-2)}
+.label dd{margin:0}
+.label .stamp{position:absolute;right:.8rem;bottom:.7rem;font-family:var(--f-display);font-style:italic;color:var(--ochre);border:1.5px solid var(--ochre);border-radius:50%;width:3.1rem;height:3.1rem;display:grid;place-items:center;font-size:.6rem;letter-spacing:.06em;transform:rotate(9deg);opacity:.85}
+@media (max-width:1100px){.specimen{max-width:34rem}}
+
+/* ---------- about ---------- */
+.about{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:2rem 3rem}
+@media (max-width:860px){.about{grid-template-columns:1fr}}
+.prose{max-width:var(--measure);display:grid;gap:1.1rem}
+.prose p:first-child::first-letter{font-family:var(--f-display);font-size:3.2em;float:left;line-height:.8;padding:.08em .12em 0 0;color:var(--accent);font-variation-settings:"SOFT" 80}
+.portrait{margin:0 0 2rem;position:relative;max-width:17rem;transform:rotate(1.2deg)}
+.portrait img{display:block;width:100%;height:auto;filter:grayscale(1) contrast(1.05);border:1px solid var(--rule);background:var(--paper-2);padding:.45rem;box-shadow:var(--shadow)}
+.portrait::before{content:"";position:absolute;left:-.9rem;top:-.6rem;width:4.6rem;height:1.1rem;background:var(--tape);transform:rotate(-28deg);z-index:2}
+.portrait figcaption{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.1em;color:var(--ink-2);margin-top:.5rem;text-transform:uppercase}
+.margin-note{font-family:var(--f-display);font-style:italic;font-size:1.35rem;line-height:1.3;color:var(--ink-2);border-left:2px solid var(--accent);padding-left:1rem;max-width:22rem;font-variation-settings:"SOFT" 100,"opsz" 36}
+.margin-note small{display:block;font-family:var(--f-mono);font-style:normal;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;margin-top:.7rem}
+.facts{margin-top:2.2rem;display:grid;gap:.5rem;font-family:var(--f-mono);font-size:.74rem;letter-spacing:.03em;color:var(--ink-2)}
+.facts div{display:grid;grid-template-columns:5.5rem 1fr;gap:.6rem;border-top:1px dashed var(--rule);padding-top:.5rem}
+.facts b{font-weight:500;color:var(--ink)}
+
+/* ---------- research lines ---------- */
+.lines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2.2rem 3.4rem}
+.lines article:nth-child(even){margin-top:3.2rem}
+@media (max-width:860px){.lines{grid-template-columns:1fr;gap:2.4rem}.lines article:nth-child(even){margin-top:0}}
+.lines article{position:relative;padding-top:1rem;border-top:1px solid var(--ink);max-width:36rem}
+.lines .taxa{font-family:var(--f-display);font-style:italic;font-size:.95rem;color:var(--moss);margin-bottom:.9rem}
+.lines h3{font-size:1.7rem;letter-spacing:-.01em;font-variation-settings:"SOFT" 50,"opsz" 48;margin-bottom:.8rem}
+.lines p{color:var(--ink-2);font-size:1.02rem}
+.lines .glyph{position:absolute;right:0;top:1rem;width:2.6rem;height:2.6rem;color:var(--accent);opacity:.9}
+.lines .glyph svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.3;stroke-linecap:round}
+
+/* ---------- tools ---------- */
+.tools{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr);gap:2.5rem 3rem;align-items:start}
+@media (max-width:960px){.tools{grid-template-columns:1fr}}
+.toollist{display:grid;border-top:1px solid var(--rule)}
+.toollist a{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:1rem;padding:1.05rem 0;border-bottom:1px solid var(--rule);text-decoration:none;align-items:center;transition:padding-left .25s}
+.toollist a:hover{padding-left:.6rem}
+.toollist .name{font-family:var(--f-mono);font-size:.92rem;font-weight:500}
+.toollist .desc{color:var(--ink-2);font-size:.98rem;margin-top:.15rem}
+.toollist .arrow{font-family:var(--f-mono);color:var(--accent);font-size:1rem}
+.term{
+  background:var(--ink);color:var(--paper);border-radius:4px;padding:1.2rem 1.3rem;font-family:var(--f-mono);font-size:.74rem;line-height:1.75;letter-spacing:.02em;
+  box-shadow:var(--shadow);transform:rotate(.6deg);overflow-x:auto;
+}
+.term .c{opacity:.5}.term .k{color:var(--ochre)}.term .a{color:#F0A2B6}
+.term .cursor{display:inline-block;width:.55em;height:1em;background:var(--paper);vertical-align:-.15em;animation:blink 1.1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.term .cursor{animation:none}}
+
+/* ---------- publications ---------- */
+.pubtop{display:flex;flex-wrap:wrap;gap:1rem 2rem;align-items:end;justify-content:space-between;margin-bottom:1.6rem}
+.count{font-family:var(--f-display);font-size:clamp(2.6rem,5vw,4rem);line-height:1;letter-spacing:-.03em;font-variation-settings:"SOFT" 80,"opsz" 144,"wght" 300;font-variant-numeric:tabular-nums}
+.count small{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);display:block;margin-top:.3rem}
+.filters{display:flex;flex-wrap:wrap;gap:.4rem}
+.chip{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;border:1px solid var(--rule);background:transparent;color:var(--ink-2);padding:.4rem .75rem;border-radius:999px;cursor:pointer;transition:all .2s}
+.chip:hover{border-color:var(--ink);color:var(--ink)}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.pubs{list-style:none;margin:0;padding:0;border-top:1px solid var(--ink)}
+.pub{display:grid;grid-template-columns:4.2rem minmax(0,1fr);gap:.6rem 1.4rem;padding:1.1rem 0;border-bottom:1px solid var(--rule);align-items:start}
+.pub .yr{font-family:var(--f-mono);font-size:.78rem;color:var(--ink-2);padding-top:.35rem;font-variant-numeric:tabular-nums}
+.pub .yr.new{color:var(--accent)}
+.pub h3{font-family:var(--f-body);font-weight:500;font-size:1.12rem;line-height:1.35;letter-spacing:0}
+.pub h3 a{text-decoration:none}
+.pub h3 a:hover{text-decoration:underline;text-decoration-color:var(--accent)}
+.pub .meta{color:var(--ink-2);font-size:.92rem;margin-top:.3rem;line-height:1.45}
+.pub .meta b{font-weight:500;color:var(--ink)}
+.pub .meta i{font-style:italic}
+.pub .tag{font-family:var(--f-mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--moss);margin-left:.5rem}
+.pub .lead{font-family:var(--f-mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-left:.5rem}
+.pubs.collapsed .pub.extra{display:none}
+.more{margin-top:1.4rem;display:flex;gap:1.2rem;align-items:center;flex-wrap:wrap}
+@media (max-width:600px){.pub{grid-template-columns:1fr;gap:.2rem}}
+
+/* ---------- teaching ---------- */
+.teach{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.8rem 2.6rem;max-width:60rem}
+@media (max-width:700px){.teach{grid-template-columns:1fr}}
+.teach article{border-top:1px solid var(--rule);padding-top:.9rem}
+.teach .when{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.1em;color:var(--accent)}
+.teach h3{font-size:1.25rem;margin:.4rem 0 .5rem;font-variation-settings:"SOFT" 40,"opsz" 36}
+.teach p{color:var(--ink-2);font-size:.98rem}
+
+/* ---------- trajectory ---------- */
+.route{position:relative;display:grid;gap:0;max-width:46rem;margin-left:auto}
+@media (max-width:960px){.route{margin-left:0}}
+.stop{display:grid;grid-template-columns:2rem minmax(0,1fr);gap:1.2rem;padding:1.2rem 0;position:relative}
+.stop::before{content:"";position:absolute;left:.95rem;top:0;bottom:0;width:1px;background:var(--rule)}
+.stop:first-child::before{top:1.9rem}.stop:last-child::before{bottom:calc(100% - 1.9rem)}
+.stop .pin{width:2rem;height:2rem;display:grid;place-items:center;position:relative;z-index:1}
+.stop .pin i{width:.6rem;height:.6rem;border-radius:50%;border:1.5px solid var(--ink);background:var(--paper)}
+.stop.now .pin i{background:var(--accent);border-color:var(--accent);box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 18%,transparent)}
+.stop .place{font-family:var(--f-display);font-size:1.35rem;font-variation-settings:"SOFT" 40,"opsz" 36}
+.stop .role{color:var(--ink-2);font-size:.98rem;margin-top:.2rem}
+.stop .coord{font-family:var(--f-mono);font-size:.66rem;letter-spacing:.1em;color:var(--ink-2);margin-top:.35rem}
+
+/* ---------- contact ---------- */
+.contact{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:2.5rem 3rem;align-items:start}
+@media (max-width:860px){.contact{grid-template-columns:1fr}}
+.bigmail{font-family:var(--f-display);font-size:clamp(1.3rem,3vw,2.2rem);letter-spacing:-.02em;word-break:break-all;font-variation-settings:"SOFT" 60,"opsz" 72,"wght" 350}
+.copy{margin-top:.8rem}
+.links{display:grid;gap:.45rem;font-family:var(--f-mono);font-size:.8rem;letter-spacing:.04em;margin-top:1.4rem}
+.links a{display:flex;justify-content:space-between;text-decoration:none;border-bottom:1px solid var(--rule);padding:.5rem 0;color:var(--ink-2)}
+.links a:hover{color:var(--ink)}
+.links a span:last-child{color:var(--accent)}
+.join{background:var(--paper-2);border:1px solid var(--rule);padding:1.6rem 1.7rem;transform:rotate(-.5deg);box-shadow:var(--shadow);max-width:34rem}
+.join h3{font-size:1.5rem;margin-bottom:.7rem;font-variation-settings:"SOFT" 60,"opsz" 48}
+.join p{color:var(--ink-2);font-size:1rem}
+
+footer{padding-top:3rem;margin-top:5rem;border-top:1px solid var(--rule);display:flex;flex-wrap:wrap;justify-content:space-between;gap:.8rem 2rem;font-family:var(--f-mono);font-size:.68rem;letter-spacing:.08em;color:var(--ink-2)}
+
+/* reveal */
+.rv{opacity:1;transform:none;transition:opacity .7s ease,transform .7s ease}
+.js .rv{opacity:1;transform:translateY(12px)}
+.js .rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.js .rv{opacity:1;transform:none;transition:none}}
+
+/* ---------- profile icons (glyphs from Academicons 1.8.6 + Font Awesome 4, inlined as SVG) ---------- */
+.social{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:1.1rem}
+.social a{width:1.9rem;height:1.9rem;display:grid;place-items:center;border:1px solid var(--rule);border-radius:50%;color:var(--ink-2);transition:color .2s,border-color .2s,transform .2s}
+.social a:hover{color:var(--accent);border-color:var(--accent);transform:translateY(-1px)}
+.social svg{width:1rem;height:1rem;fill:currentColor}
+.social.inline{margin-top:1.6rem}
+.links .li{width:.95rem;height:.95rem;fill:currentColor;vertical-align:-.15em;margin-right:.55rem}
+.links a span:first-child{display:inline-flex;align-items:center}
+@media (max-width:860px){.rail .social{margin-top:.8rem}}
+
+/* ---------- the lab / where we are ---------- */
+.place-card{position:relative;background:var(--paper-2);border:1px solid var(--rule);padding:1.4rem 1.5rem 1.5rem;transform:rotate(-.8deg);box-shadow:var(--shadow);max-width:24rem}
+.place-card::before{content:"";position:absolute;right:1.6rem;top:-.55rem;width:4.4rem;height:1rem;background:var(--tape);transform:rotate(3deg)}
+.place-card h3{font-size:1.75rem;line-height:1.05;margin:.5rem 0 1rem;font-variation-settings:"SOFT" 60,"opsz" 48}
+.place-card h3 span{font-family:var(--f-mono);font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);display:block;margin-top:.35rem}
+.place-card dl{margin:0 0 1.2rem;display:grid;grid-template-columns:auto 1fr;gap:.45rem .9rem;font-size:.95rem;line-height:1.4}
+.place-card dt{font-family:var(--f-mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);padding-top:.25rem}
+.place-card dd{margin:0;color:var(--ink)}
+
+/* ---------- people view ---------- */
+.people-head{padding-top:3.2rem;border-top:0}
+.people-head .sec-head{margin-bottom:0}
+.person{padding-top:2.5rem}
+.person-name{font-size:clamp(2rem,4vw,3rem);letter-spacing:-.02em;margin:.4rem 0 1.4rem;font-variation-settings:"SOFT" 50,"opsz" 96}
+.mounts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.6rem;max-width:46rem}
+@media (max-width:700px){.mounts{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.mount{aspect-ratio:4/5;border:1px dashed var(--rule);position:relative;display:grid;place-items:end start;padding:.8rem;transform:rotate(var(--r,0deg))}
+.mount:nth-child(1){--r:-1deg}.mount:nth-child(2){--r:.8deg}.mount:nth-child(3){--r:-.5deg}
+.mount::before{content:"";position:absolute;left:35%;top:-.5rem;width:3.4rem;height:.9rem;background:var(--tape);transform:rotate(-3deg)}
+.mount span{font-family:var(--f-mono);font-size:.64rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+.back{margin-top:2.6rem;font-family:var(--f-mono);font-size:.78rem;letter-spacing:.06em}
+.back a{text-decoration:none;color:var(--ink-2)}.back a:hover{color:var(--accent)}
+#view-people .about{align-items:start}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none"><symbol id="i-scholar" viewBox="0 0 2048 2048"><path transform="translate(0 1744.9) scale(1 -1)" d="M1624.144 1414.115v124.49l90.354 70.538h-977.782l-590.432-513.25h391.57c-0.71-9.714-1.002-18.498-1.002-28.46 0-95.29 33.002-174.11 99.072-237.078 66.070-63.072 147.434-94.39 243.778-94.39 22.506 0 44.574 1.682 66.004 4.682-13.29-29.718-19.998-57.248-19.998-82.936 0-45.144 20.568-93.396 61.564-144.648-179.354-12.208-311.136-44.492-395.14-96.746-48.142-29.71-86.858-67.218-116.070-112.142-29.214-45.254-43.784-93.784-43.784-146.11 0-44.106 9.428-83.822 28.43-119.142s43.784-64.322 74.57-86.784c30.712-22.71 66.144-41.604 106.144-57 39.928-15.286 79.572-26.142 119.136-32.286 39.438-6.136 78.65-9.136 117.512-9.136 61.572 0 123.216 7.928 185.358 23.712 61.996 15.93 120.138 39.504 174.496 70.824 54.214 31.108 98.356 73.538 132.214 126.712 33.784 53.394 50.718 113.394 50.718 179.822 0 50.358-10.284 96.176-30.858 137.786-20.428 41.472-45.43 75.616-75.212 102.144-29.718 26.572-59.428 50.996-89.212 72.996-29.718 22.148-54.858 44.574-75.286 67.716-20.502 23.070-30.786 45.962-30.786 68.498 0 22.498 7.928 44.214 23.844 65.214 15.792 21.072 35.080 41.362 57.644 60.826 22.572 19.426 45.144 40.996 67.642 64.608 22.498 23.53 41.786 54.068 57.644 91.466 15.93 37.39 23.786 79.748 23.786 126.888 0 61.498-11.644 111.82-34.502 152.29-2.714 4.674-5.566 8.244-8.572 13.816l260.148 213.358v-78.256c-33.8-4.25-30.282-24.438-30.282-48.618v-588.192c0-27.238 22.286-49.526 49.526-49.526h18.234c27.238 0 49.526 22.286 49.526 49.526v588.192c0 24.122 3.554 44.288-29.996 48.596zM1133.356 397.071c5.216-3.43 16.932-12.712 35.284-27.604 18.512-14.826 31.072-26.038 37.786-33.894 6.576-7.606 16.362-19.040 29.148-34.502 12.858-15.426 21.57-28.818 26.142-39.928 4.572-11.322 9.216-24.964 13.926-40.894 4.506-15.748 6.788-31.89 6.788-48.282 0-77.934-30.004-135.68-89.856-173.070-60-37.398-131.504-56.108-214.572-56.108-41.998 0-83.214 4.996-123.714 14.606-40.426 9.676-79.14 24.394-116.070 43.894-36.93 19.464-66.64 46.644-89.146 81.356-22.572 34.926-33.858 75.038-33.858 119.998 0 47.178 12.786 88.182 38.502 122.998 25.57 34.86 59.144 61.22 100.718 79.156 41.428 18.038 83.426 30.822 125.996 38.392 42.57 7.782 85.928 11.68 130.004 11.68 20.428 0 36.278-1.148 47.564-3.182 2.078-1.002 13.86-9.464 35.358-25.432 21.504-15.828 34.86-25.578 40.002-29.184zM1118.004 856.855c-33.858-40.5-81.072-60.746-141.502-60.746-54.214 0-101.932 21.782-142.928 65.426-41.142 43.534-70.502 92.928-88.43 148.254-18 55.354-26.998 109.642-26.998 162.962 0 62.602 16.436 115.894 49.284 159.89 32.856 44.112 79.996 66.216 141.43 66.216 54.286 0 102.282-23.032 143.712-69.288 41.574-46.102 71.358-97.888 89.22-155.282 17.928-57.322 26.85-112.136 26.85-164.498 0-61.47-16.926-112.502-50.636-152.934z"/></symbol><symbol id="i-github" viewBox="0 0 1536 1792"><path transform="translate(0 1536) scale(1 -1)" d="M1536 640q0 -251 -146.5 -451.5t-378.5 -277.5q-27 -5 -39.5 7t-12.5 30v211q0 97 -52 142q57 6 102.5 18t94 39t81 66.5t53 105t20.5 150.5q0 121 -79 206q37 91 -8 204q-28 9 -81 -11t-92 -44l-38 -24q-93 26 -192 26t-192 -26q-16 11 -42.5 27t-83.5 38.5t-86 13.5 q-44 -113 -7 -204q-79 -85 -79 -206q0 -85 20.5 -150t52.5 -105t80.5 -67t94 -39t102.5 -18q-40 -36 -49 -103q-21 -10 -45 -15t-57 -5t-65.5 21.5t-55.5 62.5q-19 32 -48.5 52t-49.5 24l-20 3q-21 0 -29 -4.5t-5 -11.5t9 -14t13 -12l7 -5q22 -10 43.5 -38t31.5 -51l10 -23 q13 -38 44 -61.5t67 -30t69.5 -7t55.5 3.5l23 4q0 -38 0.5 -89t0.5 -54q0 -18 -13 -30t-40 -7q-232 77 -378.5 277.5t-146.5 451.5q0 209 103 385.5t279.5 279.5t385.5 103t385.5 -103t279.5 -279.5t103 -385.5z"/></symbol><symbol id="i-orcid" viewBox="0 0 2048 2048"><path transform="translate(0 1744.9) scale(1 -1)" d="M1309.33 948.955c-25.234 11.776-49.078 19.676-71.68 23.406-22.528 3.876-58.66 5.706-108.69 5.706h-129.902v-540.598h133.194c51.932 0 92.306 3.584 121.124 10.678s52.81 16.018 72.046 26.99c19.236 10.898 36.864 24.284 52.882 40.302 51.274 52.078 76.946 117.76 76.946 197.194 0 78.044-26.332 141.75-79.068 191.050-19.456 18.286-41.838 33.426-66.852 45.276zM1024 1609.143c-484.79 0-877.714-392.996-877.714-877.714s392.924-877.714 877.714-877.714 877.714 392.996 877.714 877.714-392.924 877.714-877.714 877.714zM732.598 343.845h-104.010v726.82h104.010v-726.82zM680.522 1146.587c-39.424 0-71.534 31.89-71.534 71.534 0 39.35 32.036 71.46 71.534 71.46 39.57 0 71.606-32.036 71.606-71.46-0.074-39.716-32.036-71.534-71.606-71.534zM1534.83 567.589c-18.724-44.398-45.422-83.456-80.164-117.102-35.328-34.816-76.434-60.854-123.318-78.556-27.428-10.678-52.516-17.92-75.41-21.65-22.966-3.584-66.634-5.34-131.218-5.34h-229.888v725.724h245.028c98.962 0 177.078-14.702 234.716-44.398 57.564-29.622 103.278-73.362 137.29-130.852 34.012-57.564 51.054-120.394 51.054-188.27 0.074-48.714-9.436-95.232-28.086-139.556z"/></symbol><symbol id="i-researchgate" viewBox="0 0 2048 2048"><path transform="translate(0 1744.9) scale(1 -1)" d="M1194.642 23.429c-93.996 102.282-219.786 266.57-324.426 452.286 172.852 40.426 300.852 202.716 300.852 364.858 0 239.002-185.636 349.93-428.998 349.93-125.784 0-226.144-6.356-319.854-6.356-85.504 0-170.934 0-224.146 2.070v-61.93l80.998-14.856c55.712-10.716 87.428-36.148 87.428-168.572v-840.646c0-132.36-31.714-157.93-87.428-168.5l-80.998-15.14v-61.718c57.57 2.070 157.856 6.29 258.216 6.29 96 0 219.786-4.22 273.144-6.29v61.718l-111.002 15.14c-57.564 8.36-87.574 36.14-87.574 168.5v356.286c51.214-4.286 96-4.286 164.432-4.286 130.144-232.5 253.922-407.566 324.214-488.572 64.138-76.924 162.216-125.93 285.996-125.93 36.22 0 74.584 6.364 98.004 17.144v55.362c-76.786 0-153.57 53.424-208.86 113.21zM684.5 548.287c-72.572 0-104.426 1.93-153.644 6.568v535.362c49.218 4.286 115.214 4.286 172.858 4.286 179.354 0 285.93-94.004 285.93-264.572 0-168.572-115.142-281.644-305.144-281.644zM1335.86 1086.859c-2.144 11.212-4.074 24.284-5.786 39.358-1.784 15.214-2.934 33.068-3.642 54.14-0.716 20.926-1.002 46.496-1.002 75.784 0 29.432 0.286 54.646 1.002 75.644 0.71 21.072 1.858 39.146 3.642 54.214 1.712 15.002 3.642 28.146 5.786 39.358 2.070 11.286 4.784 22.002 8.288 32.498 18.352 55.5 48.428 97.214 90.5 125.22 41.998 28 93.498 42.064 154.638 42.064 31.43 0 59.934-3.642 85.218-11.066 25-7.358 47.426-17.504 67.21-30.5 19.5-12.858 36.36-28 50.286-45.144 14.284-17.21 25.782-35.57 34.786-55.288 3.496-6.282 2.502-11.286-3.072-14.782l-77.642-31.926c-6.576-3.504-11.212-1.718-14.862 5.216-17.422 32.286-32.286 53.496-56.708 68.922-24.714 15.36-47.572 22.646-85.218 22.646-40.93 0-59.216-8.14-84.854-26.5-25.432-18-44.076-40.646-55.076-75.14-2.208-6.218-4.214-13.934-6.568-23.004-1.93-9.216-3.504-20.502-4.498-33.712-1.002-13.216-1.93-29.572-2.786-48.86-0.57-19.288-0.856-42.716-0.856-69.858 0-27.282 0.286-50.71 0.856-69.998 0.856-19.214 1.784-35.57 2.786-48.786 0.994-13.356 2.568-24.568 4.498-33.858 2.356-8.93 4.36-16.64 6.568-22.93 11-34.356 26.72-53.138 49.862-68.214 22.858-15.286 49.138-26.288 90.068-26.288 36.36 0 69.646 10.358 91.356 26.148 21.504 15.784 39.358 36.638 47.36 65.142 3.504 12.002 8.002 26.932 11.074 45.216 2.786 18.286 2.786 37.64 2.786 64.352 0 4.22-2.362 6.364-6.29 6.364h-124.358c-7 0-10.43 3.424-10.43 10.422v71.286c0 7.072 3.43 10.504 10.43 10.504h228.214c7.146 0 10.504-3.43 10.504-10.504v-60.928c0-32.286 0-62.216-3.358-89.93-3.218-27.714-7.57-51.712-13.070-69.208-17.43-54.792-45.070-93.792-87.428-122.858-42.504-29.286-97.288-45.070-156.79-45.070-61.14 0-112.64 14.066-154.638 41.998-42.072 28.284-72.148 69.786-90.5 125.286-3.504 10.496-6.218 21.284-8.288 32.57z"/></symbol><symbol id="i-lattes" viewBox="0 0 2048 2048"><path transform="translate(0 1744.9) scale(1 -1)" d="M511.48 5.149c-188.292 385.822-300.318 618.826-300.318 624.61 0 9.436 11.506 8.126 124.636-14.058 198.97-39.066 305.276-50.088 482.48-50.154 234.452-0.066 425.37 37.068 573.704 111.682 78.474 39.476 125.666 74.474 164.316 121.878 47.608 58.426 62.902 98.662 63.452 166.386 0.482 64.416-8.2 98.384-45.472 177.204-14.746 31.144-27.7 66.896-28.936 79.44-1.93 20.188-0.278 23.084 14.606 24.802 32.52 3.854 193.046-151.984 252.16-244.788 101.896-160.044 110.168-333.18 23.91-500.604-52.984-102.86-111.542-174.028-209.584-254.918-162.94-134.348-352.336-227.906-613.866-303.28-140.478-40.514-367.63-89.636-414.412-89.636-9.918 0-28.526 32.52-86.536 151.5l-0.138-0.066zM563.916 627.355c-182.922 23.698-336.42 44.302-341.174 45.816-8.126 2.618-37.2 99.62-53.6 178.578-4.132 19.982-10.196 72.894-13.502 117.672-14.752 199.804 28.724 337.942 145.226 462.16 197.252 210.132 619.586 235.696 1096.074 66.348 83.638-29.762 116.846-50.432 101.486-63.312-11.366-9.508-88.394-9.37-221.498 0.416-208.070 15.294-366.46-13.642-448.102-81.986-124.292-104.032-105.34-332.084 54.982-661.058 17.364-35.62 34.86-70.48 38.86-77.576 9.304-16.326 2.552-31.488-13.642-30.728-6.898 0.33-162.194 19.96-345.11 43.666zM1177.57 806.341c-145.994 26.25-277.24 116.78-319.612 220.328-20.326 49.744-19.36 114.644 2.34 153.498 19.638 35.138 70.342 75.784 115.748 92.804 75.578 28.314 207.93 17.020 304.384-26.046 91.56-40.858 172.726-112.714 202.898-179.544 38.722-85.774 6.474-181.474-76.478-227.152-54.982-30.244-161.836-46.022-229.354-33.894h0.074z"/></symbol></svg>
+<div class="sheet">
+
+<aside class="rail">
+  <div>
+    <a class="brand" href="#top" style="text-decoration:none">Perez Lab<small>RJB · CSIC · Madrid</small></a>
+    <nav aria-label="Sections">
+      <a href="#top" data-view="home">The lab</a>
+      <a href="#research" data-view="home">Research</a>
+      <a href="#tools" data-view="home">Software</a>
+      <a href="#publications" data-view="home">Publications</a>
+      <a href="#teaching" data-view="home">Teaching</a>
+      <a href="#people" data-view="people">People</a>
+      <a href="#contact" data-view="home">Contact</a>
+    </nav>
+  </div>
+  <div class="newick" aria-hidden="true"><span>((Pilosocereus:0.42,(Kleinia:0.18,Euphorbia:0.21):0.33):0.61,((Osteoglossum:0.27,Arapaima:0.25):0.44,Hoplias:0.58):0.39,(HIV_phylodynamics:0.31,primates_BiSSE:0.29):0.52); ((Pilosocereus:0.42,(Kleinia:0.18,Euphorbia:0.21):0.33):0.61,((Osteoglossum:0.27,Arapaima:0.25):0.44,Hoplias:0.58):0.39,(HIV_phylodynamics:0.31,primates_BiSSE:0.29):0.52); </span></div>
+  <div class="foot">40.41° N<br>3.69° W<br>Plaza de Murillo 2</div>
+</aside>
+
+<main id="top">
+
+<!-- ======================= HOME VIEW ======================= -->
+<div id="view-home">
+
+<section class="hero">
+  <div class="topbar">
+    <div class="kicker"><span class="dot" aria-hidden="true"></span><span class="eyebrow">Computational evolutionary biology</span><span class="eyebrow">Real Jardín Botánico, CSIC</span></div>
+    <div class="social" aria-label="Profiles">
+      <a href="https://scholar.google.com/citations?user=b0vBInIAAAAJ&hl=en" target="_blank" rel="noopener" title="Google Scholar"><svg><use href="#i-scholar"/></svg></a>
+      <a href="https://github.com/manolofperez" target="_blank" rel="noopener" title="GitHub"><svg><use href="#i-github"/></svg></a>
+      <a href="https://orcid.org/0000-0002-4642-7793" target="_blank" rel="noopener" title="ORCID"><svg><use href="#i-orcid"/></svg></a>
+      <a href="https://www.researchgate.net/profile/Manolo_Perez3" target="_blank" rel="noopener" title="ResearchGate"><svg><use href="#i-researchgate"/></svg></a>
+      <a href="http://lattes.cnpq.br/0179487334009838" target="_blank" rel="noopener" title="Lattes CV"><svg><use href="#i-lattes"/></svg></a>
+    </div>
+  </div>
+  <div>
+    <h1>Perez Lab</h1>
+    <p class="thesis">The Perez Lab builds <strong>deep learning and Bayesian methods</strong> that turn genomes and phylogenies into histories: how lineages split, spread, adapt and go extinct, from Brazilian cacti and Amazonian fishes to malaria vectors and HIV.</p>
+    <div class="cta">
+      <a class="btn" href="#research">What we do <span aria-hidden="true">→</span></a>
+      <a class="btn ghost" href="#people">Who we are</a>
+    </div>
+  </div>
+  <div class="specimen">
+    <figure class="photo">
+      <img src="images/rjb.jpg" alt="The Real Jardín Botánico in Madrid" onerror="this.parentNode.classList.add('missing')">
+      <div class="ph" aria-hidden="true"><span>images/rjb.jpg</span><small>photo of the garden goes here</small></div>
+      <figcaption>Pabellón Villanueva, Real Jardín Botánico · photo Antonello Dellanotte © RJB-CSIC</figcaption>
+    </figure>
+    <div class="label" aria-label="Specimen label">
+      <dl>
+        <dt>Fam.</dt><dd>Perez Lab</dd>
+        <dt>Det.</dt><dd>Manolo F. Perez</dd>
+        <dt>Loc.</dt><dd>Real Jardín Botánico, CSIC</dd>
+        <dt>Hab.</dt><dd>phylogenies · genomes · GPUs</dd>
+        <dt>Coll.</dt><dd>Plaza de Murillo 2, Madrid</dd>
+      </dl>
+      <span class="stamp">det.<br>MFP</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= THE LAB ================= -->
+<section id="lab" class="rv">
+  <div class="sec-head">
+    <h2>The lab</h2>
+    <p class="lede">Evolutionary biology and machine learning, inside one of Europe's oldest botanical gardens.</p>
+  </div>
+  <div class="about">
+    <div>
+      <div class="place-card">
+        <div class="eyebrow">Where we are</div>
+        <h3>Real Jardín Botánico<br><span>CSIC</span></h3>
+        <dl>
+          <dt>Est.</dt><dd>1755, by royal decree of Ferdinand VI; a CSIC research centre since 1939</dd>
+          <dt>Living</dt><dd>5,500+ plant species in an eight-hectare garden</dd>
+          <dt>Dried</dt><dd>the MA herbarium, a reference collection for Iberian and American flora</dd>
+          <dt>Where</dt><dd>Plaza de Murillo 2, beside the Prado, central Madrid</dd>
+        </dl>
+        <a class="btn ghost" href="https://rjb.csic.es/" target="_blank" rel="noopener">rjb.csic.es ↗</a>
+      </div>
+    </div>
+    <div class="prose">
+      <p>The lab is based at the Real Jardín Botánico in Madrid, a living museum with more than 265 years of history and a research centre of the Spanish National Research Council (CSIC). The garden's mission is to understand and conserve the biodiversity of plants, fungi and other organisms, and to train people to do the same at every level of education. We add a computational layer to that mission.</p>
+      <p>Our work sits on complex diversification processes: the recent, messy, incompletely sorted parts of the tree of life where species boundaries blur and demography leaves its clearest marks. To get at them we develop Bayesian and machine-learning methods, in particular neural networks trained on simulated data, for species delimitation, phylogeography, population genetics, and phylogenetic and diversification analyses.</p>
+      <p>Being inside a botanical garden shapes the questions. Pleistocene refugia in Neotropical cacti, admixture in the Canarian flora and the conservation of threatened endemics sit next to projects on Amazonian fishes, primate diversification and the transmission dynamics of pathogens such as HIV and the malaria vectors of the <em class="sp">Anopheles gambiae</em> complex. The same simulators and networks serve all of them.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= RESEARCH ================= -->
+<section id="research" class="rv">
+  <div class="sec-head">
+    <h2>Research lines</h2>
+    <p class="lede">Four threads, one toolbox. Each line pairs a biological question with the simulation-based inference needed to answer it.</p>
+  </div>
+  <div class="lines">
+    <article>
+      <div class="glyph" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M4 20h10M14 20V9h12M14 20v11h12M26 9V4h10M26 9v5h10M26 31v-5h10M26 31v5h10"/></svg></div>
+      <div class="taxa">HIV · primates · birth–death models</div>
+      <h3>Deep learning from phylogenies</h3>
+      <p>Tree representations and neural architectures that let a network read a phylogeny directly, for model selection and parameter estimation in phylodynamics (BD, BDEI, BDSS) and macroevolutionary diversification (BiSSE and relatives). PhyloCNN is the current flagship.</p>
+    </article>
+    <article>
+      <div class="glyph" aria-hidden="true"><svg viewBox="0 0 40 40"><circle cx="12" cy="14" r="7"/><circle cx="27" cy="25" r="8"/><path d="M19 14h5M24 11l3 3-3 3" opacity=".6"/></svg></div>
+      <div class="taxa">Pilosocereus · Kleinia · Euphorbia · Hoplias</div>
+      <h3>Species delimitation &amp; phylogeography of recent radiations</h3>
+      <p>Where coalescent methods and taxonomy disagree, we simulate under explicit demographic models and let CNNs or ABC decide: interglacial microrefugia in cactus complexes, island admixture in Macaronesia, and species complexes in the gray zone of speciation.</p>
+    </article>
+    <article>
+      <div class="glyph" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M6 30c6-14 10-14 14-8s8 8 14-10"/><path d="M6 34h28" opacity=".5"/><path d="M10 6l3 5M30 6l-3 5"/></svg></div>
+      <div class="taxa">Osteoglossiformes · Characiformes · Loricariidae</div>
+      <h3>Genomic &amp; cytogenomic resources for non-model species</h3>
+      <p>Combining population genomics with comparative cytogenetics in Neotropical fishes: karyotype turnover, neo-sex chromosomes and chromosomal rearrangements as drivers of divergence in arowanas, arapaima, trahiras and armored catfish.</p>
+    </article>
+    <article>
+      <div class="glyph" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M20 36V14M20 14c-6 0-10-4-10-10 6 0 10 4 10 10zM20 20c6 0 10-4 10-10-6 0-10 4-10 10z"/><path d="M8 36h24" opacity=".5"/></svg></div>
+      <div class="taxa">Anopheles · steppe biota · threatened endemics</div>
+      <h3>Climate, conservation &amp; generative models</h3>
+      <p>Species distribution modelling and remote-sensing data to assess climate-change impacts on endangered species, and continental-scale reconstructions of responses to Quaternary change. The newest branch applies generative models to evolutionary inference in malaria vectors, and asks how AI should be used in science at all.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ================= TOOLS ================= -->
+<section id="tools" class="rv">
+  <div class="sec-head">
+    <h2>Software</h2>
+    <p class="lede">Everything is open. Scripts and notebooks accompany each paper so results can be re-run, re-trained and re-purposed.</p>
+  </div>
+  <div class="tools">
+    <div class="toollist">
+      <a href="https://github.com/manolofperez/phyloCNN" target="_blank" rel="noopener"><span><span class="name">PhyloCNN</span><p class="desc">Simulation, tree encoding, CNN training and posterior analysis for phylodynamics and diversification. Perez &amp; Gascuel, <i>Systematic Biology</i> 2025.</p></span><span class="arrow">↗</span></a>
+      <a href="https://github.com/manolofperez/DeepID" target="_blank" rel="noopener"><span><span class="name">DeepID</span><p class="desc">Integrative species delimitation with two coupled CNNs that read thousands of loci together with phenotypic traits.</p></span><span class="arrow">↗</span></a>
+      <a href="https://github.com/manolofperez/CNN_spDelimitation_Piloso" target="_blank" rel="noopener"><span><span class="name">CNN_spDelimitation</span><p class="desc">Coalescent-based species delimitation with deep learning in a fragmented cactus system. <i>Mol. Ecol. Resour.</i> 2022.</p></span><span class="arrow">↗</span></a>
+      <a href="https://github.com/manolofperez/CNN_DemographyArapaima" target="_blank" rel="noopener"><span><span class="name">CNN_DemographyArapaima</span><p class="desc">Data simulation, demographic model selection and parameter estimation with CNNs. <i>Ecography</i> 2020.</p></span><span class="arrow">↗</span></a>
+      <a href="https://github.com/manolofperez/CNN_Canarias" target="_blank" rel="noopener"><span><span class="name">CNN_Canarias</span><p class="desc">Phylogeographic model testing for the Canarian flora. <i>Molecular Ecology</i> 2024.</p></span><span class="arrow">↗</span></a>
+      <a href="https://github.com/manolofperez/Physalia_MLPopGen" target="_blank" rel="noopener"><span><span class="name">Physalia_MLPopGen</span><p class="desc">Course materials: machine learning for population genetics (2023, 2025, 2026 editions).</p></span><span class="arrow">↗</span></a>
+    </div>
+    <pre class="term" aria-label="Typical PhyloCNN workflow"><span class="c"># a typical run, start to finish</span>
+<span class="k">$</span> python generate_parameters.py <span class="a">--model BDSS</span> \
+    <span class="a">--R0 1.5,5 --tree-size 200,500</span>
+<span class="k">$</span> simulate_trees  params.csv  <span class="c">→ trees.nwk</span>
+<span class="k">$</span> python encode_trees.py trees.nwk <span class="c">→ encoded.csv</span>
+<span class="k">$</span> jupyter nbconvert --execute train_CNN.ipynb
+<span class="c">  epoch 48/50  val_mae 0.041  ✓</span>
+<span class="k">$</span> python predict.py empirical_HIV.nwk
+<span class="c">  R0 = 2.31 [1.94, 2.70]   sampling p = 0.26</span>
+<span class="k">$</span> <span class="cursor"></span></pre>
+  </div>
+</section>
+
+<!-- ================= PUBLICATIONS ================= -->
+<section id="publications" class="rv">
+  <div class="sec-head">
+    <h2>Publications</h2>
+    <p class="lede">Peer-reviewed articles, preprints and book chapters. The full record lives on <a href="https://scholar.google.com/citations?user=b0vBInIAAAAJ&hl=en" target="_blank" rel="noopener">Google Scholar</a> and <a href="https://orcid.org/0000-0002-4642-7793" target="_blank" rel="noopener">ORCID</a>.</p>
+  </div>
+  <div class="pubtop">
+    <div class="count"><span id="pubcount">37</span><small id="pubcountlabel">works · 2011 – 2025</small></div>
+    <div class="filters" role="group" aria-label="Filter publications">
+      <button class="chip" aria-pressed="true" data-f="all" id="f-all">All</button>
+      <button class="chip" aria-pressed="false" data-f="lead" id="f-lead">Lead author</button>
+      <button class="chip" aria-pressed="false" data-f="ml" id="f-ml">Deep learning</button>
+      <button class="chip" aria-pressed="false" data-f="plants" id="f-plants">Plants</button>
+      <button class="chip" aria-pressed="false" data-f="fish" id="f-fish">Fishes</button>
+      <button class="chip" aria-pressed="false" data-f="chapter" id="f-chapter">Chapters</button>
+    </div>
+  </div>
+  <ol class="pubs collapsed" id="publist"></ol>
+  <div class="more">
+    <button class="btn" id="showall" type="button">Show all works</button>
+    <span class="mono" id="shown"></span>
+  </div>
+</section>
+
+<!-- ================= TEACHING ================= -->
+<section id="teaching" class="rv">
+  <div class="sec-head">
+    <h2>Teaching &amp; talks</h2>
+    <p class="lede">Courses and workshops on simulation-based inference, from ABC in 2014 to deep learning today.</p>
+  </div>
+  <div class="teach">
+    <article>
+      <div class="when">2023 · 2025 · 2026</div>
+      <h3>Machine Learning for Population Genetics</h3>
+      <p>Recurring international course with Physalia Courses. Simulation, summary statistics, CNNs on genotype matrices and trees, and how to trust (or not) a trained network.</p>
+    </article>
+    <article>
+      <div class="when">2019 · UFSCar</div>
+      <h3>Spatial Methods in Phylogeography and Population Genetics</h3>
+      <p>One-week course for the Genetics and Evolution graduate program: species distribution modelling, isolation by distance and by environment, population structure, all in R.</p>
+    </article>
+    <article>
+      <div class="when">2015 · Evolution Meeting</div>
+      <h3>ABC model selection</h3>
+      <p>Lecture and practical at the NSF–SSB Phylogeography and Phylogenetics Workshop: simulating genetic data under demographic models and testing them with Approximate Bayesian Computation.</p>
+    </article>
+    <article>
+      <div class="when">2014 · UNICAMP</div>
+      <h3>Simulation and ABC for demographic model testing</h3>
+      <p>Lectures at the Phylogeography Workshop, Universidade Estadual de Campinas.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ================= CONTACT ================= -->
+<section id="contact" class="rv">
+  <div class="sec-head">
+    <h2>Contact</h2>
+    <p class="lede">The lab is in the Real Jardín Botánico, next to the Prado, in central Madrid.</p>
+  </div>
+  <div class="contact">
+    <div>
+      <div class="eyebrow">Email</div>
+      <div class="bigmail" id="email">manolofernandez@rjb.csic.es</div>
+      <button class="btn ghost copy" id="copybtn" type="button">Copy address</button>
+      <div class="links">
+        <a href="https://scholar.google.com/citations?user=b0vBInIAAAAJ&hl=en" target="_blank" rel="noopener"><span><svg class="li"><use href="#i-scholar"/></svg>Google Scholar</span><span>↗</span></a>
+        <a href="https://orcid.org/0000-0002-4642-7793" target="_blank" rel="noopener"><span><svg class="li"><use href="#i-orcid"/></svg>ORCID</span><span>↗</span></a>
+        <a href="https://github.com/manolofperez" target="_blank" rel="noopener"><span><svg class="li"><use href="#i-github"/></svg>GitHub</span><span>↗</span></a>
+        <a href="https://www.researchgate.net/profile/Manolo_Perez3" target="_blank" rel="noopener"><span><svg class="li"><use href="#i-researchgate"/></svg>ResearchGate</span><span>↗</span></a>
+        <a href="http://lattes.cnpq.br/0179487334009838" target="_blank" rel="noopener"><span><svg class="li"><use href="#i-lattes"/></svg>Lattes CV</span><span>↗</span></a>
+        <a href="https://rjb.csic.es/personal-cientifico/manolo-fernandez-perez/" target="_blank" rel="noopener"><span>RJB–CSIC profile</span><span>↗</span></a>
+      </div>
+    </div>
+    <div class="join">
+      <h3>Join the lab</h3>
+      <p>We welcome students and postdocs who want to work between evolutionary biology and machine learning, whatever side they are coming from. If you have a question about speciation, phylogeography or diversification and suspect a simulator plus a neural network could answer it, write to us with a short note on what you would like to do.</p>
+    </div>
+  </div>
+</section>
+
+</div><!-- /view-home -->
+
+<!-- ======================= PEOPLE VIEW ======================= -->
+<div id="view-people" hidden>
+
+<section id="people" class="people-head">
+  <div class="sec-head">
+    <h2>People</h2>
+    <p class="lede">The lab is young and growing. Students and collaborators will appear here as they join.</p>
+  </div>
+</section>
+
+<section class="person">
+  <div class="about">
+    <div>
+      <figure class="portrait">
+        <img src="images/manolo.jpg" alt="Manolo Fernandez Perez, black and white portrait under trees" width="324" height="333" loading="lazy">
+        <figcaption>M. F. Perez · <em class="sp">in situ</em></figcaption>
+      </figure>
+      <div class="facts">
+        <div><span>Role</span><b>Principal Investigator</b></div>
+        <div><span>PhD</span><b>Evolutionary Genetics &amp; Molecular Biology, Federal University of São Carlos (UFSCar), Brazil</b></div>
+        <div><span>ORCID</span><b>0000-0002-4642-7793</b></div>
+      </div>
+      <div class="social inline" aria-label="Profiles">
+        <a href="https://scholar.google.com/citations?user=b0vBInIAAAAJ&hl=en" target="_blank" rel="noopener" title="Google Scholar"><svg><use href="#i-scholar"/></svg></a>
+        <a href="https://github.com/manolofperez" target="_blank" rel="noopener" title="GitHub"><svg><use href="#i-github"/></svg></a>
+        <a href="https://orcid.org/0000-0002-4642-7793" target="_blank" rel="noopener" title="ORCID"><svg><use href="#i-orcid"/></svg></a>
+        <a href="https://www.researchgate.net/profile/Manolo_Perez3" target="_blank" rel="noopener" title="ResearchGate"><svg><use href="#i-researchgate"/></svg></a>
+        <a href="http://lattes.cnpq.br/0179487334009838" target="_blank" rel="noopener" title="Lattes CV"><svg><use href="#i-lattes"/></svg></a>
+      </div>
+    </div>
+    <div>
+      <div class="eyebrow">Principal investigator</div>
+      <h3 class="person-name">Manolo Fernandez Perez</h3>
+      <div class="prose">
+        <p>Manolo is a researcher at the Real Jardín Botánico in Madrid (CSIC). He trained as an evolutionary geneticist, earning his PhD at the Federal University of São Carlos in Brazil with work on the phylogeography of cacti from dry Neotropical environments, and has since moved steadily toward the computational side of the field.</p>
+        <p>His research develops Bayesian and machine-learning methods for population genetics, species delimitation, biogeography, and phylogenetic and diversification analyses, applied to datasets that range from macroevolution to epidemiology. He contributes to the <a href="https://github.com/popsim-consortium/stdpopsim" target="_blank" rel="noopener">stdpopsim</a> consortium and teaches machine learning for population genetics internationally.</p>
+        <p>Before Madrid he held positions at Imperial College London (I-X, AI in science), the Muséum national d'Histoire naturelle in Paris, and the Fish Cytogenetics Lab at UFSCar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="route" class="rv">
+  <div class="sec-head">
+    <h2>Trajectory</h2>
+    <p class="lede">Collection localities, in order. Each stop added a group of organisms, or a method, that the lab still works with.</p>
+  </div>
+  <div class="route">
+    <div class="stop"><div class="pin"><i></i></div><div><div class="place">São Carlos, Brazil</div><div class="role">PhD in Evolutionary Genetics and Molecular Biology, Federal University of São Carlos (UFSCar). Cacti, microsatellites, anonymous nuclear markers, ABC.</div><div class="coord">22.02° S · 47.89° W</div></div></div>
+    <div class="stop"><div class="pin"><i></i></div><div><div class="place">São Carlos, Brazil</div><div class="role">Postdoctoral researcher, Fish Cytogenetics Lab, UFSCar. Arowanas, arapaima and the first CNNs for demographic inference.</div><div class="coord">22.02° S · 47.89° W</div></div></div>
+    <div class="stop"><div class="pin"><i></i></div><div><div class="place">Paris, France</div><div class="role">Muséum national d'Histoire naturelle. Deep learning from phylogenetic trees; the work that became PhyloCNN.</div><div class="coord">48.84° N · 2.36° E</div></div></div>
+    <div class="stop"><div class="pin"><i></i></div><div><div class="place">London, United Kingdom</div><div class="role">Research Fellow, I-X, Imperial College London. Generative models for malaria vectors and AI in science.</div><div class="coord">51.50° N · 0.18° W</div></div></div>
+    <div class="stop now"><div class="pin"><i></i></div><div><div class="place">Madrid, Spain</div><div class="role">Real Jardín Botánico, CSIC. Perez Lab.</div><div class="coord">40.41° N · 3.69° W · now</div></div></div>
+  </div>
+</section>
+
+<section id="members" class="rv">
+  <div class="sec-head">
+    <h2>Students &amp; collaborators</h2>
+    <p class="lede">Positions in the lab are listed under <a href="#contact">Contact</a>. This shelf is waiting for its first specimens.</p>
+  </div>
+  <div class="mounts" aria-hidden="true">
+    <div class="mount"><span>student</span></div>
+    <div class="mount"><span>student</span></div>
+    <div class="mount"><span>collaborator</span></div>
+  </div>
+  <p class="back"><a href="#top">← Back to the lab</a></p>
+</section>
+
+</div><!-- /view-people -->
+
+<footer>
+  <span>Perez Lab · Real Jardín Botánico, CSIC · Plaza de Murillo 2, 28014 Madrid</span>
+  <span>© <span id="year">2026</span> Perez Lab</span>
+</footer>
+
+</main>
+</div>
+
+<script>
+document.documentElement.classList.add('js');
+
+/* ---------- publications ---------- */
+const PUBS = [
+{y:2025,a:"PEREZ, M.F. & Gascuel, O.",t:"PhyloCNN: Improving tree representation and neural network architecture for deep learning from trees in phylodynamics and diversification studies",j:"Systematic Biology",v:"syaf082",u:"https://doi.org/10.1093/sysbio/syaf082",k:["ml"]},
+{y:2025,a:"Crilly, A., Malivert, A., Jørgensen, A.C.S., Heaney, C.E., Vera Gonzalez, G.I., Ghosh, M., … PEREZ, M.F. & Li, Z.",t:"Ten simple rules for navigating AI in science",j:"PLoS Computational Biology",v:"21(7), e1013259",u:"https://doi.org/10.1371/journal.pcbi.1013259",k:["ml"]},
+{y:2025,a:"Eneli, A.A., Siu, P.C., PEREZ, M.F., Burt, A., Fumagalli, M. & Mathieson, S.",t:"On the use of generative models for evolutionary inference of malaria vectors from genomic data",j:"bioRxiv",v:"2025.06.26.661760",u:"https://doi.org/10.1101/2025.06.26.661760",k:["ml"],pre:true},
+{y:2025,a:"Sassi, F.M.C., Souza, F.H.S., Shams, F., PEREZ, M.F., Ezaz, T., Deon, G.A., Xu, L. & Cioffi, M.D.B.",t:"Rapid turnover of sex chromosomes likely drives speciation in Neotropical armored catfish Harttia (Siluriformes, Loricariidae)",j:"bioRxiv",v:"2025.08.06.668863",u:"https://doi.org/10.1101/2025.08.06.668863",k:["fish"],pre:true},
+{y:2024,a:"Rincón Barrado, M., PEREZ, M.F., Villaverde, T., García-Verdugo, C., Caujapé-Castells, J., Riina, R. & Sanmartín, I.",t:"Phylogenomics and phylogeographic model testing using convolutional neural networks reveal a history of recent admixture in the Canarian Kleinia neriifolia",j:"Molecular Ecology",v:"33(21), e17537",u:"https://doi.org/10.1111/mec.17537",k:["ml","plants"]},
+{y:2024,a:"Souza, F.H., PEREZ, M.F., Ferreira, P.H., Bertollo, L.A., Ezaz, T., Charlesworth, D. & Cioffi, M.B.",t:"Multiple karyotype differences between populations of the Hoplias malabaricus (Teleostei; Characiformes), a species complex in the gray area of the speciation process",j:"Heredity",v:"133(4), 216–226",u:"https://doi.org/10.1038/s41437-024-00705-1",k:["fish"]},
+{y:2024,a:"Rincón Barrado, M., Villaverde, T., PEREZ, M.F., Sanmartín, I. & Riina, R.",t:"The sweet tabaiba or there and back again: phylogeographic history of the Macaronesian Euphorbia balsamifera",j:"Annals of Botany",v:"mcae001",u:"https://doi.org/10.1093/aob/mcae001",k:["plants"]},
+{y:2023,a:"Lauterbur, M.E., Cavassim, M.I.A., Gladstein, A.L., Gower, G., Pope, N.S., … PEREZ, M.F., … Gronau, I. (stdpopsim Consortium)",t:"Expanding the stdpopsim species catalog, and lessons learned for realistic genome simulations",j:"eLife",v:"12, RP84874",u:"https://elifesciences.org/reviewed-preprints/84874",k:[]},
+{y:2023,a:"Romeiro-Brito, M., Khan, G., PEREZ, M.F., Zappi, D.C., Taylor, N.P., Olsthoorn, G., Franco, F.F. & Moraes, E.M.",t:"Revisiting phylogeny, systematics, and biogeography of a Pleistocene radiation",j:"American Journal of Botany",v:"e16134",u:"https://doi.org/10.1002/ajb2.16134",k:["plants"]},
+{y:2023,a:"Machado, C.B. & PEREZ, M.F.",t:"Phylogeography for Neotropical Species Conservation: Lineages Through Time and Space",j:"In: Galetti Jr., P.M. (ed.) Conservation Genetics in the Neotropics. Springer, Cham",v:"",u:"https://doi.org/10.1007/978-3-031-34854-9_6",k:["chapter"]},
+{y:2023,a:"PEREZ, M.F., Toma, G.A., Souza, F.H.S., Ferreira, P.N., Ráb, P. & Cioffi, M.B.",t:"Integrating Genomic and Cytogenetic Data to Study the Evolutionary History of Arapaimas and Arowanas in the Neotropics",j:"In: Galetti Jr., P.M. (ed.) Conservation Genetics in the Neotropics. Springer, Cham",v:"",u:"https://doi.org/10.1007/978-3-031-34854-9_21",k:["chapter","fish"]},
+{y:2022,a:"Kirschner, P., PEREZ, M.F., Záveská, E., Sanmartín, I., Marquer, L., Schlick-Steiner, B., Alvarez, N., the STEPPE Consortium, Steiner, F.M. & Schönswetter, P.",t:"Congruent evolutionary responses of European steppe biota to late Quaternary climate change: insights from convolutional neural network based demographic modeling",j:"Nature Communications",v:"13, 1921",u:"https://www.nature.com/articles/s41467-022-29267-8",k:["ml","plants"]},
+{y:2022,a:"Ferreira, P.H., Souza, F.H.D., Moraes, R.L.R., PEREZ, M.F., Sassi, F.D.M., Viana, P.F., Feldberg, E., Ezaz, T., Liehr, T., Bertollo, L.A. & Cioffi, M.B.",t:"The genetic differentiation of Pyrrhulina (Teleostei, Characiformes) species is likely influenced by both geographical distribution and chromosomal rearrangements",j:"Frontiers in Genetics",v:"13, 869073",u:"https://doi.org/10.3389/fgene.2022.869073",k:["fish"]},
+{y:2022,a:"Souza, F.H.D., Sassi, F.D.M., Ferreira, P.H., Bertollo, L.A., Ezaz, T., Liehr, T., PEREZ, M.F. & Cioffi, M.B.",t:"Integrating Cytogenetics and Population Genomics: Allopatry and Neo-Sex Chromosomes May Have Shaped the Genetic Divergence in the Erythrinus erythrinus Species Complex (Teleostei, Characiformes)",j:"Biology",v:"11(2), 315",u:"https://www.mdpi.com/2079-7737/11/2/315",k:["fish"]},
+{y:2022,a:"PEREZ, M.F., Bonatelli, I.A.S., Romeiro-Brito, M., Franco, F.F., Taylor, N.P., Zappi, D.C. & Moraes, E.M.",t:"Coalescent-based species delimitation meets deep learning: Insights from a highly fragmented cactus system",j:"Molecular Ecology Resources",v:"22(3), 1016–1028",u:"https://doi.org/10.1111/1755-0998.13534",k:["ml","plants"]},
+{y:2021,a:"Sember, A., Nguyen, P., PEREZ, M.F., Altmanová, M., Ráb, P. & de Bello Cioffi, M.",t:"Multiple sex chromosomes in teleost fishes from a cytogenetic perspective: state of the art and future challenges",j:"Philosophical Transactions of the Royal Society B",v:"376, 20200098",u:"https://royalsocietypublishing.org/doi/10.1098/rstb.2020.0098",k:["fish"]},
+{y:2021,a:"Fegies, A.C.F., Carmignotto, A.P., PEREZ, M.F., Guilardi, M.D. & Lessinger, A.C.",t:"Molecular phylogeny of Cryptonanus (Didelphidae: Thylamyini): evidence for a recent and complex diversification in South American open biomes",j:"Molecular Phylogenetics and Evolution",v:"162, 107213",u:"https://www.sciencedirect.com/science/article/abs/pii/S1055790321001469",k:[]},
+{y:2021,a:"Sassi, F.M.C., PEREZ, M.F., Oliveira, V., Deon, D.A., Souza, F., Ferreira, P., Oliveira, E., Hatanaka, T., Liehr, T., Bertollo, L.A.C. & de Bello Cioffi, M.",t:"High genetic diversity despite conserved karyotype organization in the giant trahiras from genus Hoplias (Characiformes, Erythrinidae)",j:"Genes",v:"12, 252",u:"https://www.mdpi.com/2073-4425/12/2/252",k:["fish"]},
+{y:2021,a:"Sassi, F.M.C., PEREZ, M.F., Silva, M.A., Kavalco, K.F. & Pasa, R.",t:"Can geometric morphometrics work for species clusterization on the armored catfish Hypostomus (Siluriformes, Loricariidae)?",j:"Biodiversity Journal",v:"12(4), 147–153",u:"http://www.biodiversityjournal.com/pdf/12%281%29_147-153.pdf",k:["fish"]},
+{y:2020,a:"Oliveira, E.A., Sassi, F.M.C., PEREZ, M.F., Bertollo, L.A.C., Ráb, P., Ezaz, T., Hatanaka, T., Viana, P.F., Feldberg, E., Oliveira, E.H.C. & Cioffi, M.B.",t:"Comparative cytogenetic survey of the giant bonytongue Arapaima fish (Osteoglossiformes: Arapaimidae), across different Amazonian and Tocantins/Araguaia River basins",j:"Neotropical Ichthyology",v:"18(4), e200055",u:"https://www.scielo.br/scielo.php?script=sci_arttext&pid=S1679-62252020000400201",k:["fish"]},
+{y:2020,a:"Oliveira, E.A., PEREZ, M.F., Bertollo, L.A.C., Gestich, C.C., Ráb, P., Ezaz, T., Souza, F.H.S., Viana, P., Feldberg, E., Oliveira, E.H.C. & Cioffi, M.B.",t:"Historical demography and climate driven distributional changes in a widespread Neotropical freshwater species with high economic importance",j:"Ecography",v:"43, 1291–1304",u:"https://doi.org/10.1111/ecog.04874",k:["ml","fish"]},
+{y:2019,a:"Souza, F.H.S., PEREZ, M.F., Bertollo, L.A.C., Oliveira, E.A., Lavoué, S., Gestich, C.C., Ráb, P., Ezaz, T., Liehr, T., Viana, P.F., Feldberg, E. & Cioffi, M.B.",t:"Interspecific Genetic Differences and Historical Demography in South American Arowanas (Osteoglossiformes, Osteoglossidae, Osteoglossum)",j:"Genes",v:"10, 693",u:"https://www.mdpi.com/2073-4425/10/9/693",k:["fish"]},
+{y:2019,a:"Cioffi, M.B., Ráb, P., Ezaz, T., Bertollo, L.A.C., Lavoué, S., Oliveira, E.A., Sember, A., Molina, W.F., Souza, F.H.S., Majtánová, Z., Liehr, T., Al-Rikabi, A.B.H., Yano, C.F., Viana, P., Feldberg, E., Unmack, P., Hatanaka, T., Tanomtong, A. & PEREZ, M.F.",t:"Deciphering the Evolutionary History of Arowana Fishes (Teleostei, Osteoglossiformes, Osteoglossidae): Insight from Comparative Cytogenomics",j:"International Journal of Molecular Sciences",v:"20, 4296",u:"https://www.mdpi.com/1422-0067/20/17/4296",k:["fish"],senior:true},
+{y:2019,a:"Souza, A.S.D., Dias-Júnior, E.A., PEREZ, M.F., Cioffi, M.D.B., Bertollo, L.A.C., Garcia-Machado, E., Valinotto, M.N.S., Galetti, P.M. & Molina, W.F.",t:"Phylogeography and historical demography of two sympatric Atlantic snappers: Lutjanus analis and L. jocu",j:"Frontiers in Marine Science",v:"6, 545",u:"https://doi.org/10.3389/fmars.2019.00545",k:["fish"]},
+{y:2018,a:"PEREZ, M.F., Franco, F.F., Bombonato, J.R., Bonatelli, I.A.S., Khan, G., Romeiro-Brito, M., Fegies, A.C., Ribeiro, P.M., Silva, G.A.R. & Moraes, E.M.",t:"Assessing population structure in face of isolation by distance: are we neglecting the problem?",j:"Diversity and Distributions",v:"24, 1883–1889",u:"https://doi.org/10.1111/ddi.12816",k:[]},
+{y:2018,a:"Khan, G., Ribeiro, P.M., Bonatelli, I.A.S., PEREZ, M.F., Franco, F.F. & Moraes, E.M.",t:"Weak population structure and no genetic erosion in Pilosocereus aureispinus: a microendemic and threatened cactus species from eastern Brazil",j:"PLoS ONE",v:"13(4), e0195475",u:"https://doi.org/10.1371/journal.pone.0195475",k:["plants"]},
+{y:2017,a:"Franco, F.F., Jojima, C.L., PEREZ, M.F., Zappi, D.C., Taylor, N. & Moraes, E.M.",t:"The xeric side of the Brazilian Atlantic Forest: the forces shaping phylogeographic structure of cacti",j:"Ecology and Evolution",v:"7, 9281–9293",u:"https://doi.org/10.1002/ece3.3458",k:["plants"]},
+{y:2017,a:"Khan, G., Godoy, M.O., Franco, F.F., PEREZ, M.F., Taylor, N.P., Zappi, D.C., Machado, M.C. & Moraes, E.M.",t:"Extreme population subdivision or cryptic speciation in the cactus Pilosocereus jauruensis? A taxonomic challenge posed by a naturally fragmented system",j:"Systematics and Biodiversity",v:"16(2), 188–199",u:"https://doi.org/10.1080/14772000.2017.1359215",k:["plants"]},
+{y:2017,a:"Miño, C.I., Avelar, L.H., Silva, F.M., PEREZ, M.F., Menezes, L.F. & Del Lama, S.N.",t:"Genetic differentiation and historical demography of wood stork populations in Brazilian wetlands: Implications for the conservation of the species and associated ecosystems",j:"Aquatic Conservation: Marine and Freshwater Ecosystems",v:"27, 1313–1324",u:"https://doi.org/10.1002/aqc.2791",k:[]},
+{y:2016,a:"PEREZ, M.F., Bonatelli, I.A.S., Moraes, E.M. & Carstens, B.C.",t:"Model-based analysis supports interglacial refugia over long dispersal events in the diversification of two South American cactus species",j:"Heredity",v:"116, 550–557",u:"https://www.nature.com/articles/hdy201617",k:["plants"]},
+{y:2016,a:"PEREZ, M.F., Carstens, B.C., Rodrigues, G.L. & Moraes, E.M.",t:"Anonymous nuclear markers reveal taxonomical incongruences and long-term disjunction in a cactus species complex with continental-island distribution in South America",j:"Molecular Phylogenetics and Evolution",v:"95, 11–19",u:"https://www.sciencedirect.com/science/article/pii/S1055790315003450",k:["plants"]},
+{y:2016,a:"PEREZ, M.F., Carstens, B.C., Rodrigues, G.L. & Moraes, E.M.",t:"Anonymous nuclear markers data supporting species tree phylogeny and divergence time estimates in a cactus species complex in South America",j:"Data in Brief",v:"6, 456–460",u:"https://www.sciencedirect.com/science/article/pii/S2352340915003571",k:["plants"]},
+{y:2015,a:"Peres, E.A., Sobral-Souza, T., PEREZ, M.F., Bonatelli, I.A., Silva, D.P., Silva, M.J. & Solferini, V.N.",t:"Pleistocene niche stability and lineages diversification in the subtropical spider Araneus omnicolor (Araneidae)",j:"PLoS ONE",v:"10, e0121543",u:"https://doi.org/10.1371/journal.pone.0121543",k:[]},
+{y:2015,a:"Garrick, R.C., Bonatelli, I.A., Hyseni, C., Morales-Garcia, A.E., Pelletier, T.A., PEREZ, M.F., Rice, E., Satler, J.D., Symula, R.E., Thomé, M.T.C. & Carstens, B.C.",t:"The evolution of phylogeographic datasets",j:"Molecular Ecology",v:"25, 1164–1171",u:"https://doi.org/10.1111/mec.13108",k:[]},
+{y:2014,a:"Bonatelli, I.A.S., PEREZ, M.F., Peterson, A.T., Taylor, N.P., Zappi, D.C., Machado, M.C., Koch, I., Pires, A.H.C. & Moraes, E.M.",t:"Interglacial microrefugia and diversification of a cactus species complex: phylogeography and palaeodistributional reconstructions for Pilosocereus aurisetus and allies",j:"Molecular Ecology",v:"23, 3044–3063",u:"https://doi.org/10.1111/mec.12780",k:["plants"]},
+{y:2012,a:"Moraes, E.M., PEREZ, M.F., Téo, M.F., Zappi, D.C., Taylor, N.P. & Machado, M.C.",t:"Cross-species amplification of microsatellites reveals incongruence in the molecular variation and taxonomic limits of the Pilosocereus aurisetus group (Cactaceae)",j:"Genetica",v:"140, 277–285",u:"https://doi.org/10.1007/s10709-012-9678-1",k:["plants"]},
+{y:2011,a:"PEREZ, M.F., Téo, M.F., Zappi, D.C., Taylor, N.P. & Moraes, E.M.",t:"Isolation, characterization, and cross-species amplification of polymorphic microsatellite markers for Pilosocereus machrisii (Cactaceae)",j:"American Journal of Botany",v:"98, e204–e206",u:"https://doi.org/10.3732/ajb.1100033",k:["plants"]}
+];
+
+const list=document.getElementById('publist');
+const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SHOW=12;
+function authors(a){return esc(a).replace(/PEREZ, M\.?F\.?/g,'<b>Perez, M.F.</b>')}
+function render(f){
+  const rows=PUBS.filter(p=>f==='all'||(f==='lead'?(/^PEREZ/.test(p.a)||p.senior):p.k.includes(f)));
+  list.innerHTML=rows.map((p,i)=>`<li class="pub${i>=SHOW?' extra':''}">
+    <div class="yr${p.y>=2024?' new':''}">${p.y}</div>
+    <div><h3><a href="${esc(p.u)}" target="_blank" rel="noopener">${esc(p.t)}</a></h3>
+    <div class="meta">${authors(p.a)}<br><i>${esc(p.j)}</i>${p.v?' · '+esc(p.v):''}${p.pre?'<span class="tag">preprint</span>':''}${p.k.includes('chapter')?'<span class="tag">book chapter</span>':''}${/^PEREZ/.test(p.a)?'<span class="lead">lead</span>':''}${p.senior?'<span class="lead">senior</span>':''}</div></div></li>`).join('');
+  const btn=document.getElementById('showall');
+  btn.hidden=rows.length<=SHOW;
+  list.classList.add('collapsed');btn.textContent='Show all works';
+  document.getElementById('shown').textContent=rows.length<=SHOW?`${rows.length} works`:`showing ${SHOW} of ${rows.length}`;
+}
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{
+  document.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed','false'));
+  c.setAttribute('aria-pressed','true');render(c.dataset.f);
+}));
+document.getElementById('showall').addEventListener('click',e=>{
+  const open=list.classList.toggle('collapsed');
+  e.target.textContent=open?'Show all works':'Show fewer';
+  document.getElementById('shown').textContent=open?`showing ${Math.min(SHOW,list.children.length)} of ${list.children.length}`:`${list.children.length} works`;
+});
+document.getElementById('pubcount').textContent=PUBS.length;
+render('all');
+
+/* ---------- copy email ---------- */
+document.getElementById('copybtn').addEventListener('click',async e=>{
+  const t=document.getElementById('email').textContent.trim();
+  try{await navigator.clipboard.writeText(t);e.target.textContent='Copied';}
+  catch(err){const r=document.createRange();r.selectNodeContents(document.getElementById('email'));const s=getSelection();s.removeAllRanges();s.addRange(r);e.target.textContent='Select & copy';}
+  setTimeout(()=>e.target.textContent='Copy address',1800);
+});
+
+/* ---------- reveal + nav state ---------- */
+const io=new IntersectionObserver(es=>es.forEach(x=>{if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target)}}),{rootMargin:'0px 0px -8% 0px'});
+document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+const navs=[...document.querySelectorAll('.rail nav a')];
+const so=new IntersectionObserver(es=>es.forEach(x=>{if(x.isIntersecting){navs.forEach(a=>a.setAttribute('aria-current',a.getAttribute('href')==='#'+x.target.id?'true':'false'))}}),{rootMargin:'-40% 0px -55% 0px'});
+document.querySelectorAll('main section[id]').forEach(s=>so.observe(s));
+
+
+/* ---------- views: home / people ---------- */
+const views={home:document.getElementById('view-home'),people:document.getElementById('view-people')};
+function route(){
+  const h=(location.hash||'#top').slice(1);
+  const v=h==='people'||h==='route'||h==='members'?'people':'home';
+  for(const k in views)views[k].hidden=k!==v;
+  navs.forEach(a=>a.setAttribute('aria-current',a.dataset.view===v&&(v==='people'||a.getAttribute('href')==='#'+h)?'true':'false'));
+  if(v==='people'){const t=document.getElementById(h==='people'?'top':h);if(t)t.scrollIntoView({block:'start'});if(h==='people')scrollTo({top:0});}
+  else{const t=document.getElementById(h);if(t&&h!=='top')t.scrollIntoView({block:'start'});else if(h==='top')scrollTo({top:0});}
+}
+addEventListener('hashchange',route);
+route();
+document.getElementById('year').textContent=new Date().getFullYear();
+</script>
+</body>
+</html>
